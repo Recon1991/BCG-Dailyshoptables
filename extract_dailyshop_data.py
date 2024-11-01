@@ -2,24 +2,27 @@ import json
 import os
 from pathlib import Path
 from fractions import Fraction
+import csv
 
 # Load configuration from daily_shop_extract_config.json
 with open("daily_shop_extract_config.json", "r") as config_file:
     config = json.load(config_file)
 
 COBBLEMON_DIR = Path(config["COBBLEMON_DIR"])
-DAILYSHOP_CONFIG_DIR = COBBLEMON_DIR / "config" / "dailyshop" / "trade_tables"
+DAILYSHOP_CONFIG_DIR = COBBLEMON_DIR / "minecraft" / "config" / "dailyshop" / "trade_tables"
 
 OUTPUT_FILE_NAME = config["OUTPUT_FILE_NAME"]
 CSV_SEPARATOR = config.get("CSV_SEPARATOR", ",")
 
-
 def read_table(table_name: str):
     file_path = DAILYSHOP_CONFIG_DIR / (table_name + ".json")
-    with open(file_path, "r") as fd:
-        contents = json.load(fd)
-    return contents
-
+    try:
+        with open(file_path, "r") as fd:
+            contents = json.load(fd)
+        return contents
+    except FileNotFoundError:
+        print(f"Error: File not found - {file_path}")
+        exit(1)
 
 def format_percentage(value: float, decimal_places: int = 4):
     """
@@ -27,13 +30,29 @@ def format_percentage(value: float, decimal_places: int = 4):
     """
     return f"{value * 100:.{decimal_places}f}%"
 
-
 def format_fraction(value: float):
     """
     Formats a value as a fraction.
     """
     return str(Fraction(value).limit_denominator())
 
+def format_item_name(item_name: str):
+    """
+    Formats an item name by replacing underscores with spaces and capitalizing each word.
+    """
+    return item_name.replace("_", " ").title()
+
+def format_mod_name(mod_name: str):
+    """
+    Formats a mod name by replacing underscores with spaces and capitalizing each word.
+    """
+    return mod_name.replace("_", " ").title()
+
+def format_cost(count: int, item: str):
+    """
+    Formats the cost by combining the count and item name in a readable format.
+    """
+    return f"{count} x {item.replace('_', ' ').title()}"
 
 if __name__ == "__main__":
     daily_shop = read_table("daily_shop")
@@ -56,7 +75,7 @@ if __name__ == "__main__":
     print(f"Shop total weight: {total_weight}")
 
     csv_data = [
-        ["Item name", "Mod name", "Item count", "Cost", "Percentage", "Fraction"]  # Column names
+        ["Item name", "Mod name", "Cost", "Percentage", "Fraction"]  # Column names
     ]
 
     for entry in daily_shop["pool"]:
@@ -88,24 +107,30 @@ if __name__ == "__main__":
 
         cost_item = pool['input1']['filter'].split(":")[1]  # Ignore minecraft:
         cost_count = pool['input1']['count']['count']
-        cost = f"{cost_count} {cost_item}"
+        cost = format_cost(cost_count, cost_item)
         print(f"\tCost: {cost}")
 
         for item in pool['output']:
             mod_name, item_name = item['item'].split(':')
-            item_count = item['count']['count']
             percentage_in_pool = item["weight"] / total_item_weight
             percentage_in_shop = percentage_in_pool / total_weight
 
+            formatted_item_name = format_item_name(item_name)
+            formatted_mod_name = format_mod_name(mod_name)
             formatted_percentage_in_pool = format_percentage(percentage_in_pool)
             formatted_percentage_in_shop = format_percentage(percentage_in_shop)
             fraction_in_shop = format_fraction(percentage_in_shop)
 
-            print(f"{item_name},{mod_name},{item_count},{formatted_percentage_in_pool},{formatted_percentage_in_shop},{fraction_in_shop}")
-            csv_data.append([item_name, mod_name, str(item_count), cost, formatted_percentage_in_shop, fraction_in_shop])
+            print(f"{formatted_item_name},{formatted_mod_name},{formatted_percentage_in_pool},{formatted_percentage_in_shop},{fraction_in_shop}")
+            csv_data.append([formatted_item_name, formatted_mod_name, cost, formatted_percentage_in_shop, fraction_in_shop])
+
+    # Sort csv_data by Cost, then Mod name, then Item name
+    header, *rows = csv_data
+    sorted_rows = sorted(rows, key=lambda x: (x[2], x[1], x[0]))
+    csv_data = [header] + sorted_rows
 
     if os.path.exists(OUTPUT_FILE_NAME):
         os.remove(OUTPUT_FILE_NAME)
-    with open(OUTPUT_FILE_NAME, "x") as fd:
-        csv_contents = "\n".join([CSV_SEPARATOR.join(line) for line in csv_data])
-        fd.write(csv_contents)
+    with open(OUTPUT_FILE_NAME, "w", newline='') as fd:
+        writer = csv.writer(fd, delimiter=CSV_SEPARATOR)
+        writer.writerows(csv_data)
