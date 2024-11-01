@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from fractions import Fraction
 import csv
+import re
 
 # Load configuration from daily_shop_extract_config.json
 with open("daily_shop_extract_config.json", "r") as config_file:
@@ -19,10 +20,34 @@ def read_table(table_name: str):
     try:
         with open(file_path, "r") as fd:
             contents = json.load(fd)
+        validate_data(contents, table_name)  # Perform validation after reading data
         return contents
     except FileNotFoundError:
         print(f"Error: File not found - {file_path}")
         exit(1)
+
+def validate_data(data, table_name: str):
+    """
+    Validates the structure of the JSON data to ensure required fields exist and are of expected types.
+    """
+    # Basic validation for the 'roll' key
+    if "roll" not in data:
+        print(f"Validation Error: 'roll' is missing in the '{table_name}' table.")
+        exit(1)
+
+    if "pool" in data:
+        if not isinstance(data["pool"], list):
+            print(f"Validation Error: 'pool' should be a list in the '{table_name}' table.")
+            exit(1)
+
+        for pool_entry in data["pool"]:
+            if "value" not in pool_entry or "weight" not in pool_entry:
+                print(f"Validation Error: 'value' or 'weight' missing in an entry of 'pool' in '{table_name}' table.")
+                exit(1)
+
+            if not isinstance(pool_entry["weight"], (int, float)):
+                print(f"Validation Error: 'weight' should be a number in '{table_name}' table.")
+                exit(1)
 
 def format_percentage(value: float, decimal_places: int = 4):
     """
@@ -53,6 +78,17 @@ def format_cost(count: int, item: str):
     Formats the cost by combining the count and item name in a readable format.
     """
     return f"{count} x {item.replace('_', ' ').title()}"
+
+def parse_cost(cost: str):
+    """
+    Parses the cost string into a tuple of (count, item) for sorting purposes.
+    """
+    match = re.match(r"(\d+) x (.+)", cost)
+    if match:
+        count = int(match.group(1))
+        item = match.group(2).strip()
+        return count, item
+    return 0, ""
 
 if __name__ == "__main__":
     daily_shop = read_table("daily_shop")
@@ -126,7 +162,7 @@ if __name__ == "__main__":
 
     # Sort csv_data by Cost, then Mod name, then Item name
     header, *rows = csv_data
-    sorted_rows = sorted(rows, key=lambda x: (x[2], x[1], x[0]))
+    sorted_rows = sorted(rows, key=lambda x: (parse_cost(x[2]), x[1], x[0]))
     csv_data = [header] + sorted_rows
 
     if os.path.exists(OUTPUT_FILE_NAME):
