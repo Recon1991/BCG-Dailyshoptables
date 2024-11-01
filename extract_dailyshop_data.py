@@ -3,15 +3,19 @@ import os
 from pathlib import Path
 from fractions import Fraction
 
-COBBLEMON_DIR = Path("~") / "curseforge" / "minecraft" / "instances" / "BigChadGuys Plus (w Cobblemon)"
+# Load configuration from daily_shop_extract_config.json
+with open("daily_shop_extract_config.json", "r") as config_file:
+    config = json.load(config_file)
+
+COBBLEMON_DIR = Path(config["COBBLEMON_DIR"])
 DAILYSHOP_CONFIG_DIR = COBBLEMON_DIR / "config" / "dailyshop" / "trade_tables"
 
-OUTPUT_FILE_NAME = "daily_shop_data.csv"
-CSV_SEPARATOR = ","
+OUTPUT_FILE_NAME = config["OUTPUT_FILE_NAME"]
+CSV_SEPARATOR = config.get("CSV_SEPARATOR", ",")
 
 
 def read_table(table_name: str):
-    file_path = os.path.expanduser(DAILYSHOP_CONFIG_DIR / table_name) + ".json"
+    file_path = DAILYSHOP_CONFIG_DIR / (table_name + ".json")
     with open(file_path, "r") as fd:
         contents = json.load(fd)
     return contents
