@@ -1,7 +1,6 @@
 import json
 import os
 from pathlib import Path
-from fractions import Fraction
 import csv
 import re
 
@@ -14,6 +13,8 @@ DAILYSHOP_CONFIG_DIR = COBBLEMON_DIR / "minecraft" / "config" / "dailyshop" / "t
 
 OUTPUT_FILE_NAME = config["OUTPUT_FILE_NAME"]
 CSV_SEPARATOR = config.get("CSV_SEPARATOR", ",")
+
+COLUMN_NAMES = config["CSV_COLUMNS"]
 
 def read_table(table_name: str):
     file_path = DAILYSHOP_CONFIG_DIR / (table_name + ".json")
@@ -49,17 +50,11 @@ def validate_data(data, table_name: str):
                 print(f"Validation Error: 'weight' should be a number in '{table_name}' table.")
                 exit(1)
 
-def format_percentage(value: float, decimal_places: int = 4):
+def format_percentage(value: float, decimal_places: int = 2):
     """
     Formats a percentage value to a specified number of decimal places and adds a % symbol.
     """
     return f"{value * 100:.{decimal_places}f}%"
-
-def format_fraction(value: float):
-    """
-    Formats a value as a fraction.
-    """
-    return str(Fraction(value).limit_denominator())
 
 def format_item_name(item_name: str):
     """
@@ -81,14 +76,19 @@ def format_cost(count: int, item: str):
 
 def parse_cost(cost: str):
     """
-    Parses the cost string into a tuple of (count, item) for sorting purposes.
+    Parses the cost string into a tuple of (total_emerald_value, original_cost) for sorting purposes.
     """
     match = re.match(r"(\d+) x (.+)", cost)
     if match:
         count = int(match.group(1))
         item = match.group(2).strip()
-        return count, item
-    return 0, ""
+        # Convert Emerald Block to equivalent Emerald value (assuming 1 Block = 9 Emeralds)
+        if item == "Emerald Block":
+            total_emerald_value = count * 9
+        else:
+            total_emerald_value = count
+        return total_emerald_value, cost
+    return 0, cost
 
 if __name__ == "__main__":
     daily_shop = read_table("daily_shop")
@@ -110,9 +110,7 @@ if __name__ == "__main__":
     total_weight = sum(entry["weight"] for entry in daily_shop["pool"])
     print(f"Shop total weight: {total_weight}")
 
-    csv_data = [
-        ["Item name", "Mod name", "Cost", "Percentage", "Fraction"]  # Column names
-    ]
+    csv_data = [COLUMN_NAMES]  # Column names loaded from daily_shop_extract_config.json
 
     for entry in daily_shop["pool"]:
         pool_name = entry['value']
@@ -146,6 +144,12 @@ if __name__ == "__main__":
         cost = format_cost(cost_count, cost_item)
         print(f"\tCost: {cost}")
 
+        # Calculate total emerald value for the cost
+        if cost_item == "emerald_block":
+            total_emerald_value = cost_count * 9
+        else:
+            total_emerald_value = cost_count
+
         for item in pool['output']:
             mod_name, item_name = item['item'].split(':')
             percentage_in_pool = item["weight"] / total_item_weight
@@ -153,14 +157,12 @@ if __name__ == "__main__":
 
             formatted_item_name = format_item_name(item_name)
             formatted_mod_name = format_mod_name(mod_name)
-            formatted_percentage_in_pool = format_percentage(percentage_in_pool)
-            formatted_percentage_in_shop = format_percentage(percentage_in_shop)
-            fraction_in_shop = format_fraction(percentage_in_shop)
+            formatted_percentage_in_shop = format_percentage(percentage_in_shop, 2)
 
-            print(f"{formatted_item_name},{formatted_mod_name},{formatted_percentage_in_pool},{formatted_percentage_in_shop},{fraction_in_shop}")
-            csv_data.append([formatted_item_name, formatted_mod_name, cost, formatted_percentage_in_shop, fraction_in_shop])
+            print(f"{formatted_item_name},{formatted_mod_name},{formatted_percentage_in_shop},{total_emerald_value}")
+            csv_data.append([formatted_item_name, formatted_mod_name, cost, total_emerald_value, formatted_percentage_in_shop])
 
-    # Sort csv_data by Cost, then Mod name, then Item name
+    # Sort csv_data by total emerald value, then Mod name, then Item name
     header, *rows = csv_data
     sorted_rows = sorted(rows, key=lambda x: (parse_cost(x[2]), x[1], x[0]))
     csv_data = [header] + sorted_rows
