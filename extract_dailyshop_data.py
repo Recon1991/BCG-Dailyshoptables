@@ -8,6 +8,7 @@ import re
 with open("daily_shop_extract_config.json", "r") as config_file:
     config = json.load(config_file)
 
+PROJECT_ROOT = Path(__file__).parent.resolve()
 COBBLEMON_DIR = Path(config["COBBLEMON_DIR"])
 DAILYSHOP_CONFIG_DIR = COBBLEMON_DIR / "minecraft" / "config" / "dailyshop" / "trade_tables"
 
