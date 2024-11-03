@@ -1,3 +1,8 @@
+# Original: pizzaspren
+# Editor: Recon1991 and Contributors
+# Project: Daily Shop Data Extractor
+# Description: This script extracts data from daily shop JSON files and generates a csv
+
 import json
 import os
 from pathlib import Path
