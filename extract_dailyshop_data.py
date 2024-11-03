@@ -65,8 +65,10 @@ def format_percentage(value: float, decimal_places: int = 2):
 def format_item_name(item_name: str):
     """
     Formats an item name by replacing underscores with spaces and capitalizing each word.
+    Additionally formats Ts. to Tom's
     """
-    return item_name.replace("_", " ").title()
+    formatted_name = item_name.replace("_", " ").title()
+    return formatted_name.replace('Ts.', "Tom's ")
 
 def format_mod_name(mod_name: str):
     """
