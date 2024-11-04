@@ -1,3 +1,8 @@
+# Original Author: pizzapren
+# Editor: Recon1991 and Contributors
+# Project: Daily Shop Data Extractor
+# Description: This script extracts data from daily shop JSON files for analysis.
+
 import json
 import os
 from pathlib import Path
@@ -33,6 +38,8 @@ def read_table(table_name: str):
         with open(file_path, "r") as fd:
             contents = json.load(fd)
         validate_data(contents, table_name)  # Perform validation after reading data
+        if FUN_MODE:
+            print(Fore.YELLOW + f" Successfully loaded data for table: {table_name}" + Style.RESET_ALL)
         return contents
     except FileNotFoundError:
         print(f"{Fore.RED}Error: File not found - {file_path}")
@@ -104,27 +111,41 @@ def parse_cost(cost: str):
     return 0, cost
 
 if __name__ == "__main__":
+    if FUN_MODE:
+        print(Fore.MAGENTA + " Welcome to the Daily Shop Data Extractor! Let's get extracting! ✨" + Style.RESET_ALL)
+    else:
+        print("Starting Daily Shop Data Extractor...")
+
     daily_shop = read_table("daily_shop")
     total_weight = sum(entry["weight"] for entry in daily_shop["pool"])
-    print(f"Shop total weight: {total_weight}")
+    if FUN_MODE:
+        print(Fore.CYAN + f"📝 Calculated total shop weight: {total_weight}" + Style.RESET_ALL)
+    else:
+        print(f"Shop total weight: {total_weight}")
 
     csv_data = [COLUMN_NAMES]  # Column names loaded from daily_shop_extract_config.json
 
     for entry in daily_shop["pool"]:
         pool_name = entry['value']
         if FUN_MODE:
-            print(Fore.CYAN + "-" * 10 + pool_name + "-" * 10 + Style.RESET_ALL)
+            print(Fore.CYAN + "-" * 10 + f" Extracting from pool: {pool_name} " + "-" * 10 + Style.RESET_ALL)
         else:
             print("-" * 10 + pool_name + "-" * 10)
 
         pool = read_table(pool_name)
         total_item_weight = sum(item["weight"] for item in pool["output"])
-        print(f"\tPool item weights: {total_item_weight}")
+        if FUN_MODE:
+            print(Fore.YELLOW + f" Pool item weights calculated: {total_item_weight}" + Style.RESET_ALL)
+        else:
+            print(f"\tPool item weights: {total_item_weight}")
 
         cost_item = pool['input1']['filter'].split(":")[1]  # Ignore minecraft:
         cost_count = pool['input1']['count']['count']
         cost = format_cost(cost_count, cost_item)
-        print(f"\tCost: {cost}")
+        if FUN_MODE:
+            print(Fore.GREEN + f" Cost of items: {cost}" + Style.RESET_ALL)
+        else:
+            print(f"\tCost: {cost}")
 
         # Calculate total emerald value for the cost
         if cost_item == "emerald_block":
@@ -142,7 +163,7 @@ if __name__ == "__main__":
             formatted_percentage_in_shop = format_percentage(percentage_in_shop, 2)
 
             if FUN_MODE:
-                print(Fore.GREEN + f"{formatted_item_name},{formatted_mod_name},{formatted_percentage_in_shop},{total_emerald_value}" + Style.RESET_ALL)
+                print(Fore.GREEN + f" Item: {formatted_item_name}, Mod: {formatted_mod_name}, Chance: {formatted_percentage_in_shop}, Total Emerald Value: {total_emerald_value}" + Style.RESET_ALL)
             else:
                 print(f"{formatted_item_name},{formatted_mod_name},{formatted_percentage_in_shop},{total_emerald_value}")
 
@@ -160,6 +181,8 @@ if __name__ == "__main__":
         writer.writerows(csv_data)
 
     if FUN_MODE:
-        print(Fore.MAGENTA + f"🎉 Process completed successfully! Output CSV file: {OUTPUT_FILE_NAME} 🎉" + Style.RESET_ALL)
+        print(Fore.CYAN + Style.DIM + "     ==─==──==────== Processing Completed ==─────==──==─==" + Style.RESET_ALL)
+        print(Fore.MAGENTA + f"  Process completed successfully! Output CSV file: {OUTPUT_FILE_NAME} " + Style.RESET_ALL)
+        print(Fore.CYAN + "  Thanks for using the Daily Shop Data Extractor! Have a great day! " + Style.RESET_ALL)
     else:
         print(f"Process completed successfully. Output CSV file: {OUTPUT_FILE_NAME}")
