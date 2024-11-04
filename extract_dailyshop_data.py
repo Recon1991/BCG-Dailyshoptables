@@ -8,13 +8,19 @@ import os
 from pathlib import Path
 import csv
 import re
+import platform
+
+if platform.system() == "Windows":
+    home_var = "USERPROFILE"
+else:
+    home_var = "HOME"
 
 # Load configuration from daily_shop_extract_config.json
 with open("daily_shop_extract_config.json", "r") as config_file:
     config = json.load(config_file)
 
 PROJECT_ROOT = Path(__file__).parent.resolve()
-COBBLEMON_DIR = Path(config["COBBLEMON_DIR"])
+COBBLEMON_DIR = Path(os.path.expandvars(config["COBBLEMON_DIR"].replace("${HOME_DIR}", f"${home_var}")))
 DAILYSHOP_CONFIG_DIR = COBBLEMON_DIR / "minecraft" / "config" / "dailyshop" / "trade_tables"
 
 OUTPUT_FILE_NAME = config["OUTPUT_FILE_NAME"]
@@ -65,10 +71,10 @@ def format_percentage(value: float, decimal_places: int = 2):
 def format_item_name(item_name: str):
     """
     Formats an item name by replacing underscores with spaces and capitalizing each word.
-    Additionally formats Ts. to Tom's
+    Additionally, replaces 'Ts.' with 'Tom's'.
     """
-    formatted_name = item_name.replace("_", " ").title()
-    return formatted_name.replace('Ts.', "Tom's ")
+    formatted_name = item_name.replace('_', ' ').title()
+    return formatted_name.replace('Ts.', "Tom's")
 
 def format_mod_name(mod_name: str):
     """
