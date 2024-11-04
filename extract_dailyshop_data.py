@@ -1,14 +1,13 @@
-# Original: pizzaspren
-# Editor: Recon1991 and Contributors
-# Project: Daily Shop Data Extractor
-# Description: This script extracts data from daily shop JSON files and generates a csv
-
 import json
 import os
 from pathlib import Path
 import csv
 import re
 import platform
+from colorama import Fore, Style, init
+
+# Initialize colorama
+init(autoreset=True)
 
 if platform.system() == "Windows":
     home_var = "USERPROFILE"
@@ -25,8 +24,8 @@ DAILYSHOP_CONFIG_DIR = COBBLEMON_DIR / "minecraft" / "config" / "dailyshop" / "t
 
 OUTPUT_FILE_NAME = config["OUTPUT_FILE_NAME"]
 CSV_SEPARATOR = config.get("CSV_SEPARATOR", ",")
-
 COLUMN_NAMES = config["CSV_COLUMNS"]
+FUN_MODE = config.get("FUN_MODE", False)
 
 def read_table(table_name: str):
     file_path = DAILYSHOP_CONFIG_DIR / (table_name + ".json")
@@ -36,7 +35,7 @@ def read_table(table_name: str):
         validate_data(contents, table_name)  # Perform validation after reading data
         return contents
     except FileNotFoundError:
-        print(f"Error: File not found - {file_path}")
+        print(f"{Fore.RED}Error: File not found - {file_path}")
         exit(1)
 
 def validate_data(data, table_name: str):
@@ -45,21 +44,21 @@ def validate_data(data, table_name: str):
     """
     # Basic validation for the 'roll' key
     if "roll" not in data:
-        print(f"Validation Error: 'roll' is missing in the '{table_name}' table.")
+        print(f"{Fore.RED}Validation Error: 'roll' is missing in the '{table_name}' table.")
         exit(1)
 
     if "pool" in data:
         if not isinstance(data["pool"], list):
-            print(f"Validation Error: 'pool' should be a list in the '{table_name}' table.")
+            print(f"{Fore.RED}Validation Error: 'pool' should be a list in the '{table_name}' table.")
             exit(1)
 
         for pool_entry in data["pool"]:
             if "value" not in pool_entry or "weight" not in pool_entry:
-                print(f"Validation Error: 'value' or 'weight' missing in an entry of 'pool' in '{table_name}' table.")
+                print(f"{Fore.RED}Validation Error: 'value' or 'weight' missing in an entry of 'pool' in '{table_name}' table.")
                 exit(1)
 
             if not isinstance(pool_entry["weight"], (int, float)):
-                print(f"Validation Error: 'weight' should be a number in '{table_name}' table.")
+                print(f"{Fore.RED}Validation Error: 'weight' should be a number in '{table_name}' table.")
                 exit(1)
 
 def format_percentage(value: float, decimal_places: int = 2):
@@ -106,21 +105,6 @@ def parse_cost(cost: str):
 
 if __name__ == "__main__":
     daily_shop = read_table("daily_shop")
-    """
-        {
-            "roll": {
-                "type": "constant",
-                "count": 24
-            },
-            "pool": [
-                {
-                    "value": "1_emerald",
-                    "weight": 1.0
-                },
-                ...
-            ]
-        }
-    """
     total_weight = sum(entry["weight"] for entry in daily_shop["pool"])
     print(f"Shop total weight: {total_weight}")
 
@@ -128,28 +112,12 @@ if __name__ == "__main__":
 
     for entry in daily_shop["pool"]:
         pool_name = entry['value']
-        print("-" * 10 + pool_name + "-" * 10)
+        if FUN_MODE:
+            print(Fore.CYAN + "-" * 10 + pool_name + "-" * 10 + Style.RESET_ALL)
+        else:
+            print("-" * 10 + pool_name + "-" * 10)
+
         pool = read_table(pool_name)
-        """
-        {
-            "roll": {
-                "type": "constant",
-                "count": 1
-            },
-            "input1": {
-                "filter": "minecraft:emerald_block",
-                "count": { "type": "constant", "count": 48 }
-            },
-            "output": [
-                {
-                    "item": "creeperoverhaul:badlands_creeper_spawn_egg",
-                    "count": { "type": "constant", "count": 1 },
-                    "weight": 1
-                },
-                ...
-            ]
-        }
-        """
         total_item_weight = sum(item["weight"] for item in pool["output"])
         print(f"\tPool item weights: {total_item_weight}")
 
@@ -173,7 +141,11 @@ if __name__ == "__main__":
             formatted_mod_name = format_mod_name(mod_name)
             formatted_percentage_in_shop = format_percentage(percentage_in_shop, 2)
 
-            print(f"{formatted_item_name},{formatted_mod_name},{formatted_percentage_in_shop},{total_emerald_value}")
+            if FUN_MODE:
+                print(Fore.GREEN + f"{formatted_item_name},{formatted_mod_name},{formatted_percentage_in_shop},{total_emerald_value}" + Style.RESET_ALL)
+            else:
+                print(f"{formatted_item_name},{formatted_mod_name},{formatted_percentage_in_shop},{total_emerald_value}")
+
             csv_data.append([formatted_item_name, formatted_mod_name, cost, total_emerald_value, formatted_percentage_in_shop])
 
     # Sort csv_data by total emerald value, then Mod name, then Item name
@@ -186,3 +158,8 @@ if __name__ == "__main__":
     with open(OUTPUT_FILE_NAME, "w", newline='') as fd:
         writer = csv.writer(fd, delimiter=CSV_SEPARATOR)
         writer.writerows(csv_data)
+
+    if FUN_MODE:
+        print(Fore.MAGENTA + f"🎉 Process completed successfully! Output CSV file: {OUTPUT_FILE_NAME} 🎉" + Style.RESET_ALL)
+    else:
+        print(f"Process completed successfully. Output CSV file: {OUTPUT_FILE_NAME}")

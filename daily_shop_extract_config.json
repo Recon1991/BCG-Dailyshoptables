@@ -2,5 +2,6 @@
   "COBBLEMON_DIR": "${USERPROFILE}/AppData/Roaming/PrismLauncher/instances/BigChadGuys Plus (w- Cobblemon!)(5)",
   "OUTPUT_FILE_NAME": "daily_shop_data.csv",
   "CSV_SEPARATOR": ",",
-  "CSV_COLUMNS": ["Item name", "Mod name", "Cost", "Total Emerald", "Chance"]
+  "CSV_COLUMNS": ["Item name", "Mod name", "Cost", "Total Emerald", "Chance"],
+  "FUN_MODE": true
 }
