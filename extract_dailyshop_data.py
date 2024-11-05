@@ -182,7 +182,10 @@ if __name__ == "__main__":
 
     if FUN_MODE:
         print(Fore.CYAN + Style.DIM + "     ==─==──==────== Processing Completed ==─────==──==─==" + Style.RESET_ALL)
-        print(Fore.MAGENTA + f"  Process completed successfully! Output CSV file: {OUTPUT_FILE_NAME} " + Style.RESET_ALL)
-        print(Fore.CYAN + "  Thanks for using the Daily Shop Data Extractor! Have a great day! " + Style.RESET_ALL)
+        print(Fore.MAGENTA + "          Data Extraction Complete! Output CSV file: " + Style.RESET_ALL)
+        print(Fore.GREEN + f"                     {OUTPUT_FILE_NAME}     " + Style.RESET_ALL)
+        print(Fore.CYAN + Style.DIM + "     ==─==──==────== Processing Completed ==─────==──==─==" + Style.RESET_ALL)
+        print(" ")
+        print(Fore.BLUE + "  Thanks for using the Daily Shop Data Extractor! Have a great day! " + Style.RESET_ALL)
     else:
         print(f"Process completed successfully. Output CSV file: {OUTPUT_FILE_NAME}")
