@@ -1,1 +1,25 @@
-ECHO is on.
+# Python-specific
+*.pyc
+__pycache__/
+generate_hash_DTE.py
+
+# Environment files
+.env
+.venv/
+venv/
+
+# Data and output files
+/data/
+*.csv
+
+# Docker
+*.dockerignore
+Dockerfile
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Archives
+*.zip
+*.tar.gz
